@@ -1,0 +1,123 @@
+#include <iostream>
+#include <vector>
+
+using namespace std;
+
+struct segTree {
+    vector<int> t;
+    vector<int> maxi, posmax;
+    size_t pow2 = 1;
+
+    void updateNode(int v) {
+        t[v] = t[v << 1] + t[(v << 1) + 1];
+        maxi[v] = max(maxi[v << 1], maxi[(v << 1) + 1]);
+        if (maxi[v << 1] >= maxi[(v << 1) + 1]) {
+            posmax[v] = posmax[v << 1];
+        } else {
+            posmax[v] = posmax[(v << 1) + 1];
+        }
+    }
+
+    void build(vector<int> &a, int v = 1, int tl = 0, int tr = 0) {
+        if (t.empty()) {
+            while (pow2 < a.size())
+                pow2 *= 2;
+            t.resize(2 * pow2);
+            maxi.resize(2 * pow2);
+            posmax.resize(2 * pow2);
+            tl = 0;
+            tr = pow2 - 1;
+        }
+        if (tl == tr && tl < a.size()) {
+            t[v] = maxi[v] = a[tl];
+            posmax[v] = tl;
+            return;
+        } else if (tl == tr) {
+            return;
+        }
+
+        int tm = (tl + tr) >> 1;
+        build(a, v << 1, tl, tm);
+        build(a, (v << 1) + 1, tm + 1, tr);
+
+        updateNode(v);
+    }
+
+    void update(int v, int tl, int tr, int pos, int val) {
+        if (tl == tr) {
+            t[v] = maxi[v] = val;
+            return;
+        }
+
+        int tm = (tl + tr) >> 1;
+        if (pos <= tm)
+            update(v << 1, tl, tm, pos, val);
+        else
+            update((v << 1) + 1, tm + 1, tr, pos, val);
+
+        updateNode(v);
+    }
+
+    int getmax(int v, int tl, int tr, int l, int r) {
+        if (l == tl && r == tr)
+            return maxi[v];
+
+        int tm = (tl + tr) >> 1;
+        if (r <= tm) {
+            return getmax(v << 1, tl, tm, l, r);
+        } else if (l > tm) {
+            return getmax((v << 1) + 1, tm + 1, tr, l, r);
+        } else {
+            int leftmax = getmax(v << 1, tl, tm, l, tm);
+            int rightmax = getmax((v << 1) + 1, tm + 1, tr, tm + 1, r);
+            return max(leftmax, rightmax);
+        }
+    }
+
+    int getposmax(int v, int tl, int tr, int l, int r) {
+        if (l == tl && r == tr)
+            return posmax[v];
+
+        int tm = (tl + tr) >> 1;
+        if (r <= tm) {
+            return getposmax(v << 1, tl, tm, l, r);
+        } else if (l > tm) {
+            return getposmax((v << 1) + 1, tm + 1, tr, l, r);
+        } else {
+            int a1 = getmax(v << 1, tl, tm, l, tm);
+            int a2 = getmax((v << 1) + 1, tm + 1, tr, tm + 1, r);
+            if (a1 >= a2)
+                return getposmax(v << 1, tl, tm, l, tm);
+            else
+                return getposmax((v << 1) + 1, tm + 1, tr, tm + 1, r);
+        }
+    }
+};
+
+int main() {
+    size_t n;
+    cin >> n;
+
+    vector<int> a(n);
+    for (int &i : a)
+        cin >> i;
+
+    segTree st;
+    st.build(a);
+
+    size_t k;
+    cin >> k;
+    for (size_t i = 0; i != k; ++i) {
+        int l, r;
+        cin >> l >> r;
+        --l;
+        --r;
+        cout << st.getmax(1, 0, st.pow2 - 1, l, r) << " ";
+        cout << st.getposmax(1, 0, st.pow2 - 1, l, r) + 1 << "\n";
+    }
+    return 0;
+}
+
+/* Segment Tree max-posmax
+*/
+/// OK http://informatics.mccme.ru/mod/statements/view3.php?id=25867&chapterid=752#1
